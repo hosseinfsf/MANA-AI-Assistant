@@ -1,66 +1,96 @@
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { AssistantMode } from '../types';
 
-const SYSTEM_INSTRUCTION = `
-شما "دستیار هوشمند" هستید، یک هوش مصنوعی مفید، مودب و دقیق که به زبان فارسی صحبت می‌کند.
-هدف شما کمک به کاربر در کارهای روزمره مثل چت کردن، اصلاح متن، ترجمه و خلاصه سازی است.
-پاسخ‌های شما باید کوتاه، کاربردی و بدون توضیحات اضافه باشد تا کاربر بتواند سریعاً از آن‌ها استفاده کند.
-در حالت "اصلاح متن"، فقط متن اصلاح شده را برگردانید.
-در حالت "ترجمه"، فقط متن ترجمه شده (به فارسی یا انگلیسی بسته به ورودی) را برگردانید.
-`;
+import { GoogleGenAI, GenerateContentResponse, Modality } from "@google/genai";
+import { AssistantMode, AIToolType, ToneType } from '../types';
 
-export const sendMessageToGemini = async (
+const getAIToolInstruction = (tool?: AIToolType, tone?: ToneType) => {
+  switch (tool) {
+    case 'summarize': return "متن را بسیار دقیق و در قالب چند نکته کلیدی خلاصه کن. لحن را حفظ کن.";
+    case 'translate': return "متن را شناسایی کن و به زبان مقصد (فارسی/انگلیسی) ترجمه کن. فقط ترجمه نهایی را برگردان.";
+    case 'shorten': return "بدون حذف پیام اصلی، متن را تا حد امکان کوتاه و موجز کن.";
+    case 'lengthen': return "با استفاده از کلمات غنی‌تر و جزئیات بیشتر، متن را بسط بده.";
+    case 'change_tone': 
+      const tones = { formal: 'رسمی و اداری', slang: 'عامیانه', friendly: 'صمیمی', humorous: 'طنزآمیز' };
+      return `بدون تغییر معنا، لحن متن را به ${tones[tone || 'formal']} تغییر بده.`;
+    default: return "به عنوان یک دستیار هوشمند با استایل اپل پاسخ بده.";
+  }
+};
+
+export const sendMessageStream = async function* (
   text: string,
   mode: AssistantMode,
   history: { role: string; parts: { text: string }[] }[],
-  config: { apiKey?: string; model?: string }
-): Promise<string> => {
+  options: { tool?: AIToolType; tone?: ToneType; category?: string } = {}
+) {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const modelName = mode === AssistantMode.News ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+  
+  let systemInstruction = "";
+  if (mode === AssistantMode.AI) {
+    systemInstruction = getAIToolInstruction(options.tool, options.tone);
+  } else if (mode === AssistantMode.News) {
+    systemInstruction = `شما یک واحد خبری پیشرفته هستید. بر اساس دسته "${options.category}"، آخرین اخبار داغ امروز را از وب جستجو کرده و به صورت یک لیست خطی (هر خبر در یک خط مجزا)، کوتاه و بسیار جذاب با ذکر منبع گزارش دهید. از ایموجی‌های مرتبط استفاده کنید.`;
+  } else {
+    systemInstruction = "شما 'مانا' هستید. یک دستیار هوشمند با طراحی مک‌او‌اس و استایل اپل. پاسخ‌های شما باید بسیار شیک، دقیق، کوتاه و به زبان فارسی باشد.";
+  }
+
   try {
-    // Prioritize custom key if provided (though mostly we use env)
-    // Note: In this strict environment, we primarily rely on process.env.API_KEY.
-    // However, to support the user request for "Settings", we allow a custom key fallback logic
-    // if the architecture permitted. Here we re-initialize per request if a custom key is technically passed,
-    // otherwise default to the standard init.
-    
-    const apiKey = config.apiKey && config.apiKey.length > 10 ? config.apiKey : process.env.API_KEY;
-    const modelName = config.model || 'gemini-2.5-flash';
+    const config: any = {
+      systemInstruction,
+      temperature: 0.6,
+    };
 
-    const ai = new GoogleGenAI({ apiKey: apiKey });
-
-    let prompt = text;
-    
-    // Adjust prompt based on mode
-    switch (mode) {
-      case AssistantMode.FixGrammar:
-        prompt = `لطفاً متن زیر را از نظر نگارشی و دستوری اصلاح کن و لحن آن را رسمی و مودبانه کن. فقط متن اصلاح شده را بنویس:\n\n${text}`;
-        break;
-      case AssistantMode.Summarize:
-        prompt = `متن زیر را در یک پاراگراف کوتاه خلاصه کن:\n\n${text}`;
-        break;
-      case AssistantMode.Translate:
-        prompt = `متن زیر را ترجمه کن (اگر فارسی است به انگلیسی، و اگر انگلیسی است به فارسی). فقط ترجمه را بنویس:\n\n${text}`;
-        break;
-      case AssistantMode.Chat:
-      default:
-        prompt = text;
-        break;
+    if (mode === AssistantMode.News) {
+      config.tools = [{ googleSearch: {} }];
     }
 
-    const chat = ai.chats.create({
+    const responseStream = await ai.models.generateContentStream({
       model: modelName,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-      },
-      history: history.map(h => ({
-        role: h.role,
-        parts: h.parts
-      }))
+      contents: [...history, { role: 'user', parts: [{ text }] }],
+      config,
     });
 
-    const response: GenerateContentResponse = await chat.sendMessage({ message: prompt });
-    return response.text || "متاسفم، مشکلی در دریافت پاسخ پیش آمد.";
+    for await (const chunk of responseStream) {
+      yield chunk.text;
+    }
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    return "خطا در برقراری ارتباط با هوش مصنوعی. لطفاً کلید API یا اینترنت خود را بررسی کنید.";
+    console.error("Gemini Error:", error);
+    yield "خطایی در سیستم مانا رخ داد. لطفا دوباره تلاش کنید.";
   }
 };
+
+export const generateSpeech = async (text: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-tts",
+      contents: [{ parts: [{ text }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+        },
+      },
+    });
+    return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  } catch (error) {
+    return null;
+  }
+};
+
+export async function playAudioBase64(base64: string) {
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+  
+  const dataInt16 = new Int16Array(bytes.buffer);
+  const buffer = audioContext.createBuffer(1, dataInt16.length, 24000);
+  const channelData = buffer.getChannelData(0);
+  for (let i = 0; i < dataInt16.length; i++) channelData[i] = dataInt16[i] / 32768.0;
+
+  const source = audioContext.createBufferSource();
+  source.buffer = buffer;
+  source.connect(audioContext.destination);
+  source.start();
+  return source;
+}

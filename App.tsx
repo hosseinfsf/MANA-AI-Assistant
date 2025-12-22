@@ -1,92 +1,58 @@
+
 import React, { useState, useEffect } from 'react';
 import FloatingBubble from './components/FloatingBubble';
 import ChatWindow from './components/ChatWindow';
-import DemoBackground from './components/DemoBackground';
 import { AppSettings } from './types';
 
 export default function App() {
   const [isOpen, setIsOpen] = useState(false);
-  const [droppedText, setDroppedText] = useState<string>('');
-  
-  // App Settings State
   const [settings, setSettings] = useState<AppSettings>(() => {
-    // Load from local storage if available
+    const defaultBg = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2000&auto=format&fit=crop';
     try {
-      const saved = localStorage.getItem('dastyar_settings');
-      const defaultBg = 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=800&auto=format&fit=crop';
-      
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (!parsed.backgroundImage) parsed.backgroundImage = defaultBg;
-        if (!parsed.quoteSource) parsed.quoteSource = 'motivational';
-        if (!parsed.fontSize) parsed.fontSize = 'medium';
-        if (!parsed.musicProvider) parsed.musicProvider = 'local';
-        return parsed;
-      }
-      
-      return {
+      const saved = localStorage.getItem('mana_settings_v2');
+      return saved ? JSON.parse(saved) : {
         apiKey: '',
-        model: 'gemini-2.5-flash',
-        theme: 'light',
+        model: 'gemini-3-flash-preview',
+        theme: 'dark',
+        activeTheme: 'purple',
         backgroundImage: defaultBg,
-        quoteSource: 'motivational',
         fontSize: 'medium',
-        musicProvider: 'local'
+        autoSpeech: false,
+        showSingleNotification: false,
+        newsCategory: 'تکنولوژی'
       };
     } catch (e) {
-      return {
-        apiKey: '',
-        model: 'gemini-2.5-flash',
-        theme: 'light',
-        backgroundImage: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=800&auto=format&fit=crop',
-        quoteSource: 'motivational',
-        fontSize: 'medium',
-        musicProvider: 'local'
-      };
+      return { activeTheme: 'purple', backgroundImage: defaultBg };
     }
   });
 
-  // Apply Theme
   useEffect(() => {
-    const root = window.document.documentElement;
-    if (settings.theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    localStorage.setItem('dastyar_settings', JSON.stringify(settings));
+    localStorage.setItem('mana_settings_v2', JSON.stringify(settings));
+    document.body.style.backgroundImage = `url('${settings.backgroundImage}')`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
   }, [settings]);
 
-  const toggleAssistant = () => {
-    setIsOpen(prev => !prev);
-  };
-
-  const handleDropText = (text: string) => {
-    setDroppedText(text);
-    if (!isOpen) {
-      setIsOpen(true);
-    }
-  };
-
   return (
-    <div className="relative w-full h-screen overflow-hidden text-right bg-slate-200 dark:bg-slate-900 transition-colors duration-500" dir="rtl">
-      {/* Background content to demonstrate "floating" nature */}
-      <DemoBackground />
+    <div className="relative w-full h-screen overflow-hidden text-right" dir="rtl">
+      
+      {/* Decorative environment objects */}
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-accent/10 rounded-full blur-[100px] pointer-events-none animate-bounce duration-[8s]"></div>
 
-      {/* The Floating Assistant Interface */}
       <ChatWindow 
         isOpen={isOpen} 
-        initialText={droppedText}
-        onClearInitialText={() => setDroppedText('')}
         appSettings={settings}
         onUpdateSettings={setSettings}
       />
       
       <FloatingBubble 
         isOpen={isOpen} 
-        onClick={toggleAssistant}
-        onDropText={handleDropText}
+        onClick={() => setIsOpen(!isOpen)} 
       />
+
+      {/* Screen background texture overlay */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
     </div>
   );
 }

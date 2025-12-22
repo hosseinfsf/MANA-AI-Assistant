@@ -1,4 +1,3 @@
-import React from 'react';
 
 export enum Sender {
   User = 'user',
@@ -10,41 +9,48 @@ export interface Message {
   text: string;
   sender: Sender;
   timestamp: number;
+  type?: 'text' | 'image' | 'audio';
+  audioData?: string;
+}
+
+export interface SocialNotification {
+  id: string;
+  app: 'WhatsApp' | 'Telegram' | 'Instagram';
+  sender: string;
+  content: string;
+  time: string;
+  suggestions: string[];
 }
 
 export enum AssistantMode {
   Chat = 'chat',
-  FixGrammar = 'fix',
-  Summarize = 'summarize',
-  Translate = 'translate',
-  ImageGen = 'image_gen'
+  AI = 'ai',
+  ToDo = 'todo',
+  News = 'news'
 }
 
-export type Theme = 'light' | 'dark';
-export type QuoteSource = 'motivational' | 'hafez' | 'programming' | 'great_people';
-export type MusicProvider = 'local' | 'spotify';
+export type ThemeType = 'macos' | 'purple' | 'ocean' | 'nature';
+export type TodoCategory = 'daily' | 'shopping' | 'notes';
+export type NewsCategory = 'سیاسی' | 'اجتماعی' | 'ورزشی' | 'تکنولوژی' | 'اقتصادی' | 'هنری';
+export type AIToolType = 'translate' | 'summarize' | 'shorten' | 'lengthen' | 'change_tone';
+export type ToneType = 'formal' | 'slang' | 'friendly' | 'humorous';
 
 export interface AppSettings {
   apiKey: string;
   model: string;
-  theme: Theme;
+  theme: 'light' | 'dark';
+  activeTheme: ThemeType;
   backgroundImage: string;
-  quoteSource: QuoteSource;
   fontSize: 'small' | 'medium' | 'large';
-  musicProvider: MusicProvider;
-}
-
-export interface DockItem {
-  id: string;
-  icon: any;
-  label: string;
-  mode: AssistantMode;
-  pinned: boolean;
+  autoSpeech: boolean;
+  showSingleNotification: boolean;
+  newsCategory: NewsCategory;
 }
 
 export interface TodoItem {
   id: string;
   text: string;
   completed: boolean;
-  category: 'daily' | 'shopping';
+  timestamp: number;
+  category: TodoCategory;
 }

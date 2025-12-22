@@ -1,5 +1,7 @@
 {
-  "name": "Dastyar AI - دستیار هوشمند",
-  "description": "یک دستیار هوشمند شناور شخصی برای چت، اصلاح متن، ترجمه و خلاصه سازی با استفاده از هوش مصنوعی.",
-  "requestFramePermissions": []
+  "name": "MANA AI Assistant - دستیار هوشمند مانا",
+  "description": "یک مرکز فرماندهی هوشمند با قابلیت‌های صوتی، مدیریت پیام‌ها و ابزارهای بهره‌وری.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

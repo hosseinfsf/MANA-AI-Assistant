@@ -1,355 +1,252 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Settings, Sparkles, MessageSquare, ListTodo, CloudSun, Calendar, Languages, FileText, LayoutGrid, CheckSquare, ShoppingCart, Play, Pause, SkipForward, SkipBack, Volume2, Plus, GripHorizontal, Trash2, ExternalLink } from 'lucide-react';
-import { Message, Sender, AssistantMode, AppSettings, TodoItem } from '../types';
+import { 
+  Send, Settings, Sparkles, MessageSquare, ListTodo, 
+  Languages, FileText, CheckSquare, Plus, Trash2, Mic, Bell, 
+  X, Newspaper, Zap, Scissors, Smile, Search, Calendar, Battery, Wifi, 
+  Video, Utensils, CheckCircle2, ChevronDown, Clock, MapPin
+} from 'lucide-react';
+import { Message, Sender, AssistantMode, AppSettings, TodoItem, AIToolType, TodoCategory } from '../types';
 import ChatMessage from './ChatMessage';
-import { sendMessageToGemini } from '../services/geminiService';
+import { sendMessageStream } from '../services/geminiService';
 import SettingsModal from './SettingsModal';
 
-interface ChatWindowProps {
-  isOpen: boolean;
-  initialText?: string;
-  onClearInitialText?: () => void;
-  appSettings: AppSettings;
-  onUpdateSettings: (s: AppSettings) => void;
-}
+const getPersianDate = () => new Intl.DateTimeFormat('fa-IR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 
-// --- Data ---
-const QUOTES = {
-  motivational: [
-    "موفقیت مجموع تلاش‌های کوچکی است که هر روز تکرار می‌شوند. ✨",
-    "رویاهای بزرگ داشته باش و برای رسیدن به آن‌ها سخت تلاش کن. 🚀",
-    "شکست خوردن بخشی از مسیر موفقیت است، از آن نترس. 💪",
-    "امروز فرصتی است برای ساختن فردایی که همیشه آرزویش را داشتی. 🌅"
-  ],
-  hafez: [
-    "اوقات خوش آن بود که با دوست به سر رفت 🍷\nباقی همه بی‌حاصلی و بی‌خبری بود",
-    "هر آن که جانب اهل خدا نگه دارد 🤲\nخداش در همه حال از بلا نگه دارد",
-    "ساقیا بده جامی زان شراب روحانی 🍇\nتا دمی برآساییم زین حجاب جسمانی",
-    "در دایره قسمت ما نقطه تسلیمیم ⭕\nلطف آنچه تو اندیشی حکم آنچه تو فرمایی"
-  ],
-  programming: [
-    "کد نویسی یعنی فکر کردن، نه فقط تایپ کردن. 💻",
-    "سادگی روح کارآیی است. (Austin Freeman) ⚡",
-    "اول حلش کن، بعد کدش رو بنویس. 🧠",
-    "بهترین راه برای پیش‌بینی آینده، ساختن آن است. 🛠️"
-  ],
-  great_people: [
-    "بزرگترین افتخار در سقوط نکردن نیست، بلکه در برخاستن پس از هر سقوط است. (کنفوسیوس) 🎋",
-    "تغییر کن قبل از اینکه مجبور شوی. (جک ولش) 🌪️",
-    "تنها راه انجام کار بزرگ، دوست داشتن کاری است که انجام می‌دهید. (استیو جابز) 🍎",
-    "زندگی آن چیزی است که برای تو اتفاق می‌افتد در حالی که تو مشغول برنامه‌ریزی‌های دیگر هستی. (جان لنون) 🎸"
-  ]
-};
-
-const getPersianDate = () => {
-  return new Intl.DateTimeFormat('fa-IR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
-};
-
-// --- Sub-Components ---
-
-const AppGridLauncher: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-  const apps = [
-    { icon: MessageSquare, color: 'bg-blue-500', name: 'چت' },
-    { icon: ListTodo, color: 'bg-green-500', name: 'کارها' },
-    { icon: Languages, color: 'bg-purple-500', name: 'مترجم' },
-    { icon: FileText, color: 'bg-orange-500', name: 'نویسنده' },
-    { icon: Sparkles, color: 'bg-yellow-500', name: 'خلاقیت' },
-    { icon: ShoppingCart, color: 'bg-pink-500', name: 'خرید' },
-    { icon: CloudSun, color: 'bg-cyan-500', name: 'هوا' },
-    { icon: Calendar, color: 'bg-red-500', name: 'تقویم' },
-    { icon: Settings, color: 'bg-gray-500', name: 'تنظیمات' },
-  ];
-
-  return (
-    <div className="absolute inset-0 z-[60] bg-black/60 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in rounded-[2rem]">
-       <button onClick={onClose} className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 rounded-full p-2"><Settings size={20}/></button>
-       <div className="grid grid-cols-3 gap-6">
-         {apps.map((app, idx) => (
-           <button key={idx} className="flex flex-col items-center gap-3 group">
-             <div className={`w-16 h-16 ${app.color} rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-black/30 group-hover:scale-110 transition-transform duration-300 border border-white/10`}>
-               <app.icon size={30} />
-             </div>
-             <span className="text-white text-xs font-bold shadow-black/50 drop-shadow-md">{app.name}</span>
-           </button>
-         ))}
-       </div>
+const TimelineItem: React.FC<{time: string, title: string, desc: string, icon: any, color: string, isLast?: boolean}> = ({time, title, desc, icon: Icon, color, isLast}) => (
+  <div className="flex gap-5">
+    <div className="flex flex-col items-center">
+      <div className={`w-12 h-12 rounded-[1.2rem] flex items-center justify-center ${color} bg-opacity-10 text-opacity-100 border border-white/5 shadow-inner`}>
+        <Icon size={20} />
+      </div>
+      {!isLast && <div className="w-[1px] flex-1 bg-gradient-to-b from-white/20 via-white/5 to-transparent my-3"></div>}
     </div>
-  );
-};
-
-const MusicPlayer: React.FC<{ provider: 'local' | 'spotify' }> = ({ provider }) => {
-  const [playing, setPlaying] = useState(false);
-
-  if (provider === 'spotify') {
-    return (
-      <div className="w-full bg-[#1DB954]/10 dark:bg-[#1DB954]/20 rounded-2xl p-3 flex items-center gap-3 border border-[#1DB954]/30">
-        <div className="w-12 h-12 rounded-xl bg-[#1DB954] flex items-center justify-center shadow-lg shrink-0">
-          <svg className="w-6 h-6 text-black" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.018.6-1.141 4.38-1.379 9.901-.719 13.74 1.62.42.18.6.719.3 1.14zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+    <div className="flex-1 pb-10">
+      <div className="widget-card p-6 group hover:translate-x-2 transition-all cursor-pointer">
+        <div className="flex justify-between items-start mb-2">
+          <h4 className="text-white font-bold text-sm tracking-tight">{title}</h4>
+          <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">{time}</span>
         </div>
-        <div className="flex-1 overflow-hidden">
-           <div className="text-sm font-bold text-gray-100 truncate">Spotify Connected</div>
-           <div className="text-[10px] text-gray-400">Tap to open app</div>
-        </div>
-        <button className="p-2 bg-[#1DB954] text-black rounded-full hover:scale-105 transition-transform">
-           <ExternalLink size={16} />
-        </button>
+        <p className="text-white/40 text-xs leading-relaxed">{desc}</p>
       </div>
-    );
-  }
-
-  return (
-    <div className="w-full bg-white/5 dark:bg-black/20 rounded-2xl p-3 flex items-center gap-3 border border-white/5">
-       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shrink-0">
-         <Volume2 size={20} className="text-white" />
-       </div>
-       <div className="flex-1 overflow-hidden">
-         <div className="text-sm font-bold text-gray-100 truncate">آهنگ ملایم (بی‌کلام)</div>
-         <div className="flex items-center gap-2 mt-1">
-            <div className="h-1 flex-1 bg-gray-600 rounded-full overflow-hidden">
-               <div className="h-full w-1/3 bg-white rounded-full"></div>
-            </div>
-            <span className="text-[10px] text-gray-400">1:20</span>
-         </div>
-       </div>
-       <div className="flex items-center gap-1 text-white">
-          <button className="p-1.5 hover:bg-white/10 rounded-full"><SkipBack size={16} fill="currentColor"/></button>
-          <button onClick={() => setPlaying(!playing)} className="p-2 bg-white text-black rounded-full hover:scale-105 transition-transform">
-             {playing ? <Pause size={14} fill="currentColor"/> : <Play size={14} fill="currentColor" className="ml-0.5"/>}
-          </button>
-          <button className="p-1.5 hover:bg-white/10 rounded-full"><SkipForward size={16} fill="currentColor"/></button>
-       </div>
     </div>
-  );
-};
+  </div>
+);
 
-const TodoList: React.FC = () => {
-  const [todos, setTodos] = useState<TodoItem[]>([
-    { id: '1', text: 'خرید قهوه ☕', completed: false, category: 'shopping' },
-    { id: '2', text: 'تماس با تیم 📞', completed: true, category: 'daily' },
-  ]);
-  const [filter, setFilter] = useState<'daily' | 'shopping'>('daily');
-  const [newTodo, setNewTodo] = useState('');
-
-  const handleAdd = () => {
-    if (!newTodo.trim()) return;
-    setTodos([...todos, { id: Date.now().toString(), text: newTodo, completed: false, category: filter }]);
-    setNewTodo('');
-  };
-
+const WidgetDashboard: React.FC<{todos: TodoItem[], setTodos: any}> = ({todos, setTodos}) => {
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex p-1 bg-black/20 rounded-xl mb-3 mx-4 mt-2">
-        <button onClick={() => setFilter('daily')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${filter === 'daily' ? 'bg-white/20 text-white shadow-sm' : 'text-gray-400'}`}>
-          <CheckSquare size={14} /> وظایف
-        </button>
-        <button onClick={() => setFilter('shopping')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${filter === 'shopping' ? 'bg-white/20 text-white shadow-sm' : 'text-gray-400'}`}>
-          <ShoppingCart size={14} /> خرید
-        </button>
-      </div>
+    <div className="flex-1 overflow-y-auto px-10 py-6 scrollbar-hide animate-in fade-in zoom-in-95 duration-700">
+      <div className="grid grid-cols-12 gap-8">
+        
+        {/* Column 1: Core Stats & Suggestions */}
+        <div className="col-span-4 flex flex-col gap-6">
+           {/* Progress Circle Widget */}
+           <div className="widget-card p-8 bg-gradient-to-br from-primary/20 to-transparent">
+              <div className="flex justify-between items-start mb-6">
+                 <div>
+                    <p className="text-white font-black text-2xl tracking-tighter">امروز</p>
+                    <p className="text-primary text-[10px] font-black uppercase tracking-[0.4em]">Efficiency</p>
+                 </div>
+                 <div className="w-12 h-12 rounded-full border-4 border-primary flex items-center justify-center text-[10px] font-black text-white">85%</div>
+              </div>
+              <div className="space-y-3">
+                 <div className="flex justify-between text-[10px] font-bold text-white/40">
+                    <span>تکمیل شده</span>
+                    <span>۸ از ۱۰</span>
+                 </div>
+                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full w-[80%] shadow-[0_0_15px_rgba(168,85,247,0.5)]"></div>
+                 </div>
+              </div>
+           </div>
 
-      <div className="flex-1 overflow-y-auto space-y-2 px-4 scrollbar-hide">
-        {todos.filter(t => t.category === filter).map(t => (
-          <div key={t.id} className="group flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
-            <button onClick={() => setTodos(todos.map(x => x.id === t.id ? {...x, completed: !x.completed} : x))} className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${t.completed ? 'bg-green-500 border-green-500' : 'border-gray-500'}`}>
-              {t.completed && <CheckSquare size={12} className="text-white" />}
-            </button>
-            <span className={`flex-1 text-sm ${t.completed ? 'line-through text-gray-500' : 'text-gray-200'}`}>{t.text}</span>
-            <button onClick={() => setTodos(todos.filter(x => x.id !== t.id))} className="text-red-400 opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
-          </div>
-        ))}
-      </div>
-      <div className="p-3 mt-auto">
-        <div className="flex items-center gap-2 bg-white/10 rounded-xl p-1 pr-3">
-          <input value={newTodo} onChange={e => setNewTodo(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} placeholder="مورد جدید..." className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-gray-500"/>
-          <button onClick={handleAdd} className="p-2 bg-primary rounded-lg text-white"><Plus size={16}/></button>
+           {/* Suggestion Notification Style */}
+           <div className="mana-notif-bar p-6 hover:bg-white/10 transition-all cursor-pointer">
+              <div className="flex items-center gap-3 mb-3 text-accent">
+                 <Sparkles size={16} />
+                 <span className="text-[10px] font-black uppercase tracking-[0.3em]">Smart Suggestion</span>
+              </div>
+              <p className="text-white/80 text-xs font-medium leading-relaxed">۲۰ دقیقه تا جلسه بعدی فرصت داری. مایل به مدیتیشن هستی؟</p>
+              <div className="mt-4 flex gap-2">
+                 <button className="flex-1 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black text-white transition-all">رد کردن</button>
+                 <button className="flex-1 py-2 bg-primary/20 hover:bg-primary/40 rounded-xl text-[10px] font-black text-primary transition-all">بله، ثبت کن</button>
+              </div>
+           </div>
+
+           {/* Weather/Status Mini Widget */}
+           <div className="grid grid-cols-2 gap-4">
+              <div className="widget-card p-5 flex flex-col items-center gap-2">
+                 <Clock className="text-white/20" size={20} />
+                 <span className="text-white text-sm font-bold">۱۴:۳۰</span>
+                 <span className="text-[9px] text-white/30 uppercase tracking-widest">Target</span>
+              </div>
+              <div className="widget-card p-5 flex flex-col items-center gap-2">
+                 <MapPin className="text-white/20" size={20} />
+                 <span className="text-white text-sm font-bold">تهران</span>
+                 <span className="text-[9px] text-white/30 uppercase tracking-widest">Status</span>
+              </div>
+           </div>
+        </div>
+
+        {/* Column 2: Timeline */}
+        <div className="col-span-8">
+           <div className="flex justify-between items-center mb-10">
+              <h3 className="text-white font-black text-xl tracking-tight">جدول زمانی</h3>
+              <div className="flex gap-2">
+                 <button className="px-5 py-2 rounded-2xl bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-widest hover:text-white transition-all">هفتگی</button>
+                 <button className="px-5 py-2 rounded-2xl bg-primary text-white text-[10px] font-black uppercase tracking-widest shadow-lg">امروز</button>
+              </div>
+           </div>
+           
+           <div className="space-y-2">
+              <TimelineItem time="۱۰:۰۰" title="جلسه اسپرینت" desc="هماهنگی تیم فنی و بررسی موانع موجود در توسعه هسته مانا." icon={Video} color="text-yellow-400 bg-yellow-400" />
+              <TimelineItem time="۱۲:۳۰" title="زمان ناهار" desc="توقف فعالیت و تجدید قوای ذهنی." icon={Utensils} color="text-emerald-400 bg-emerald-400" />
+              <TimelineItem time="۱۴:۰۰" title="بررسی کدها" desc="بررسی پول‌ریکوئست‌های بخش UI و تم بنفش." icon={CheckCircle2} color="text-primary bg-primary" isLast />
+           </div>
         </div>
       </div>
     </div>
   );
 };
 
-// --- Main Component ---
-
-export default function ChatWindow({ isOpen, initialText, onClearInitialText, appSettings, onUpdateSettings }: ChatWindowProps) {
-  const [size, setSize] = useState({ w: 380, h: 500 }); // Main content height
-  const [messages, setMessages] = useState<Message[]>([{ id: 'welcome', text: 'سلام! چطور می‌تونم کمکت کنم؟ 👋', sender: Sender.Bot, timestamp: Date.now() }]);
+export default function ChatWindow({ isOpen, appSettings, onUpdateSettings }: any) {
+  const [activeMode, setActiveMode] = useState<AssistantMode>(AssistantMode.Chat);
+  const [messages, setMessages] = useState<Message[]>([{ id: 'm1', text: 'سلام، مانا در اختیار شماست. چه کمکی از دستم برمی‌آید؟', sender: Sender.Bot, timestamp: Date.now() }]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState(0); 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
   const [time, setTime] = useState(new Date());
-  const [dailyQuote, setDailyQuote] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const resizeRef = useRef<{ startX: number, startY: number, startW: number, startH: number } | null>(null);
+  const [todos, setTodos] = useState<TodoItem[]>(() => JSON.parse(localStorage.getItem('mana_todos_purple_v1') || '[]'));
+  const [isMicOn, setIsMicOn] = useState(false);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const quotes = QUOTES[appSettings.quoteSource] || QUOTES.motivational;
-    setDailyQuote(quotes[Math.floor(Math.random() * quotes.length)]);
-    const timer = setInterval(() => setTime(new Date()), 60000);
+    const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
-  }, [appSettings.quoteSource]);
+  }, []);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, activeTab]);
-  useEffect(() => { if (initialText) { setInput(initialText); onClearInitialText?.(); } }, [initialText]);
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages, isLoading]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-    const userMsg: Message = { id: Date.now().toString(), text: input, sender: Sender.User, timestamp: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
+    const text = input;
+    setMessages(prev => [...prev, { id: Date.now().toString(), text, sender: Sender.User, timestamp: Date.now() }]);
     setInput('');
     setIsLoading(true);
+    const botId = (Date.now() + 1).toString();
     try {
-      const history = messages.map(m => ({ role: m.sender === Sender.User ? 'user' : 'model', parts: [{ text: m.text }] }));
-      const responseText = await sendMessageToGemini(userMsg.text, AssistantMode.Chat, history, { apiKey: appSettings.apiKey, model: appSettings.model });
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), text: responseText, sender: Sender.Bot, timestamp: Date.now() }]);
-    } catch (error) { console.error(error); } finally { setIsLoading(false); }
+      setMessages(prev => [...prev, { id: botId, text: '', sender: Sender.Bot, timestamp: Date.now() }]);
+      const history = messages.slice(-4).map(m => ({ role: m.sender === Sender.User ? 'user' : 'model', parts: [{ text: m.text }] }));
+      let full = '';
+      const stream = sendMessageStream(text, activeMode, history, { category: appSettings.newsCategory });
+      for await (const chunk of stream) {
+        full += chunk;
+        setMessages(prev => prev.map(m => m.id === botId ? { ...m, text: full } : m));
+      }
+    } catch (e) {
+      setMessages(prev => prev.map(m => m.id === botId ? { ...m, text: "خطایی رخ داد." } : m));
+    } finally {
+      setIsLoading(false);
+    }
   };
-
-  const startResize = (e: React.MouseEvent) => {
-    resizeRef.current = { startX: e.clientX, startY: e.clientY, startW: size.w, startH: size.h };
-    document.addEventListener('mousemove', handleResize);
-    document.addEventListener('mouseup', stopResize);
-  };
-
-  const handleResize = (e: MouseEvent) => {
-    if (!resizeRef.current) return;
-    const deltaX = resizeRef.current.startX - e.clientX; 
-    const deltaY = e.clientY - resizeRef.current.startY; 
-    setSize({
-      w: Math.max(340, Math.min(600, resizeRef.current.startW + deltaX)),
-      h: Math.max(300, Math.min(800, resizeRef.current.startH + deltaY))
-    });
-  };
-
-  const stopResize = () => {
-    resizeRef.current = null;
-    document.removeEventListener('mousemove', handleResize);
-    document.removeEventListener('mouseup', stopResize);
-  };
-
-  const fontSizeClass = appSettings.fontSize === 'small' ? 'text-xs' : appSettings.fontSize === 'medium' ? 'text-sm' : 'text-base';
 
   if (!isOpen) return null;
 
   return (
-    <>
-      <div 
-        className="fixed bottom-28 right-8 z-50 flex flex-col gap-3 items-end animate-in fade-in slide-in-from-bottom-10"
-        style={{ width: size.w }}
-      >
+    <div className="fixed inset-0 flex items-center justify-center p-10 z-[9999] pointer-events-none" dir="rtl">
+      <div className="w-full max-w-5xl h-[780px] mana-glass rounded-ios-lg flex flex-col pointer-events-auto animate-in fade-in slide-in-from-bottom-20 duration-1000">
         
-        {/* --- ISLAND 1: HEADER (Centered Clock, Weather, Settings, Quote) --- */}
-        <div className="w-full bg-slate-900/80 backdrop-blur-xl rounded-[2rem] p-4 border border-white/10 shadow-xl flex flex-col gap-3 relative overflow-hidden">
-           {/* Top Row: Weather Left - Clock Center - Settings Right */}
-           <div className="flex items-center justify-between relative h-20">
-              
-              {/* Settings (Absolute Right) */}
-              <button 
-                onClick={() => setIsSettingsOpen(true)}
-                className="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-gray-300 hover:bg-white/20 hover:text-white transition-all z-20"
-              >
-                <Settings size={20} />
-              </button>
+        {/* --- DYNAMIC ISLAND HEADER --- */}
+        <div className="h-28 flex items-center justify-between px-12 shrink-0 relative">
+          <div className="absolute left-1/2 -translate-x-1/2 top-6">
+            <div className="dynamic-island h-10 w-44 flex items-center justify-center px-4 gap-3 overflow-hidden shadow-2xl border border-white/5">
+               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+               <span className="text-white text-[10px] font-black uppercase tracking-[0.2em]">{time.toLocaleTimeString('fa-IR', {hour: '2-digit', minute:'2-digit'})}</span>
+               <div className="w-3 h-3 bg-primary rounded-full blur-[4px]"></div>
+            </div>
+          </div>
 
-              {/* Weather (Absolute Left) */}
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 z-20">
-                 <CloudSun size={28} className="text-orange-400 drop-shadow-md" />
-                 <span className="text-sm font-bold text-gray-300">۲۴°</span>
-              </div>
+          <div className="flex items-center gap-6">
+             <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg">
+                <Sparkles size={28} />
+             </div>
+             <div>
+                <h1 className="text-white font-black text-2xl tracking-tighter">مانا</h1>
+                <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em]">{getPersianDate()}</p>
+             </div>
+          </div>
 
-              {/* Center: Clock & Date */}
-              <div className="w-full flex flex-col items-center justify-center z-10">
-                <h1 className="text-6xl font-black text-white leading-none tracking-tighter drop-shadow-2xl" style={{ fontFamily: 'Vazirmatn' }}>
-                  {time.toLocaleTimeString('fa-IR', {hour: '2-digit', minute:'2-digit'})}
-                </h1>
-                <div className="text-sm text-gold mt-1 font-bold tracking-wide">
-                  {getPersianDate()}
-                </div>
-              </div>
-           </div>
-           
-           {/* Bottom Row: Quote */}
-           <div className="bg-white/5 rounded-xl p-3 border border-white/5 flex items-center gap-2 mt-1">
-              <div className="w-1 h-8 bg-gradient-to-b from-primary to-purple-500 rounded-full shrink-0"></div>
-              <p className="text-xs text-gray-300 leading-6 italic line-clamp-2 w-full text-center">
-                {dailyQuote}
-              </p>
-           </div>
+          <div className="flex items-center gap-4">
+             <button onClick={() => setIsSettingsOpen(true)} className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-all"><Settings size={22} /></button>
+             <button onClick={() => onUpdateSettings({ ...appSettings, isOpen: false })} className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-all"><X size={22} /></button>
+          </div>
         </div>
 
-        {/* --- ISLAND 2: CONTENT (Chat/Todo) --- */}
-        <div 
-          className="w-full relative bg-slate-800/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col"
-          style={{ height: size.h, backgroundImage: `url(${appSettings.backgroundImage})`, backgroundSize: 'cover', backgroundBlendMode: 'overlay' }}
-        >
-           <div className="absolute inset-0 bg-slate-900/70 z-0"></div>
-           
-           <div className={`relative z-10 flex-1 flex flex-col min-h-0 ${fontSizeClass}`}>
-             {activeTab === 0 ? (
-               <>
-                 <div className="flex-1 overflow-y-auto p-4 scrollbar-hide space-y-4">
-                    {messages.map((msg) => <ChatMessage key={msg.id} message={msg} />)}
-                    {isLoading && <div className="text-xs text-white/50 animate-pulse px-4">درحال نوشتن...</div>}
-                    <div ref={messagesEndRef} />
-                 </div>
-                 <div className="p-3 bg-black/20 backdrop-blur-sm border-t border-white/5">
-                   <div className="flex items-center bg-white/10 rounded-2xl p-1">
-                      <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }}}
-                        placeholder="پیام خود را بنویسید..."
-                        className="flex-1 bg-transparent border-none outline-none resize-none max-h-24 text-white placeholder-white/30 py-3 px-3 scrollbar-hide"
-                        rows={1}
-                      />
-                      <button onClick={handleSend} disabled={!input.trim()} className="p-3 bg-primary rounded-xl text-white hover:bg-secondary transition-colors shadow-lg">
-                        <Send size={18} />
-                      </button>
-                   </div>
-                 </div>
-               </>
-             ) : (
-               <TodoList />
-             )}
-           </div>
-           <div 
-              onMouseDown={startResize}
-              className="absolute bottom-0 left-0 w-8 h-8 z-50 cursor-sw-resize flex items-end justify-start p-2 text-white/30 hover:text-white transition-colors"
-           >
-              <GripHorizontal size={20} />
-           </div>
+        {/* --- NAVIGATION TABS --- */}
+        <div className="flex justify-center mb-4 px-12">
+          <div className="bg-black/40 backdrop-blur-3xl p-1.5 rounded-3xl flex gap-1 border border-white/5">
+             {[
+               { id: AssistantMode.Chat, icon: MessageSquare, label: 'گفتگو' },
+               { id: AssistantMode.ToDo, icon: ListTodo, label: 'داشبورد' },
+               { id: AssistantMode.AI, icon: Zap, label: 'هوش' },
+               { id: AssistantMode.News, icon: Newspaper, label: 'اخبار' },
+             ].map(mode => (
+               <button
+                 key={mode.id}
+                 onClick={() => setActiveMode(mode.id)}
+                 className={`flex items-center gap-3 px-8 py-3 rounded-2xl transition-all duration-500 ${activeMode === mode.id ? 'bg-primary text-white shadow-xl' : 'text-white/20 hover:text-white/40'}`}
+               >
+                 <mode.icon size={18} />
+                 <span className="text-[11px] font-black uppercase tracking-widest">{mode.label}</span>
+               </button>
+             ))}
+          </div>
         </div>
 
-        {/* --- ISLAND 3: BOTTOM (Music & Compact Tabs) --- */}
-        <div className="w-full bg-slate-900/80 backdrop-blur-xl rounded-[2rem] p-3 border border-white/10 shadow-xl flex flex-col gap-3">
-           <MusicPlayer provider={appSettings.musicProvider || 'local'} />
-           
-           {/* Compact Dock in Corner (Right/Start) */}
-           <div className="flex items-center justify-between px-1">
-              {/* Corner Tabs (Right side in RTL) */}
-              <div className="flex bg-white/5 p-1 rounded-2xl gap-1">
-                <button onClick={() => setActiveTab(0)} className={`p-2.5 rounded-xl transition-all ${activeTab === 0 ? 'bg-primary text-white shadow-md' : 'text-gray-400 hover:text-white'}`}>
-                   <MessageSquare size={18} />
+        {/* --- CONTENT AREA --- */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {activeMode === AssistantMode.ToDo ? (
+            <WidgetDashboard todos={todos} setTodos={setTodos} />
+          ) : (
+            <div className="flex flex-col h-full px-12 pb-10">
+              <div ref={scrollRef} className="flex-1 overflow-y-auto pr-4 scrollbar-hide space-y-6 py-6 mask-fade-top">
+                {messages.map(msg => <ChatMessage key={msg.id} message={msg} />)}
+                {isLoading && (
+                  <div className="flex items-center gap-3 px-10">
+                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></div>
+                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                  </div>
+                )}
+              </div>
+
+              {/* Input Area - Floats at the bottom of the window */}
+              <div className="bg-black/60 backdrop-blur-3xl p-3 rounded-[2.5rem] border border-white/10 flex items-center gap-4 shadow-2xl focus-within:ring-2 ring-primary/40 transition-all">
+                <button 
+                  onClick={() => setIsMicOn(!isMicOn)}
+                  className={`p-4 rounded-3xl transition-all ${isMicOn ? 'bg-red-500 text-white siri-active' : 'bg-white/5 text-white/20 hover:text-primary'}`}
+                >
+                  <Mic size={24} />
                 </button>
-                <button onClick={() => setActiveTab(1)} className={`p-2.5 rounded-xl transition-all ${activeTab === 1 ? 'bg-green-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}>
-                   <ListTodo size={18} />
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => { if(e.key === 'Enter') handleSend(); }}
+                  placeholder="از مانا بخواهید..."
+                  className="flex-1 bg-transparent border-none outline-none text-white placeholder-white/10 py-4 text-sm font-medium"
+                />
+                <button 
+                  onClick={handleSend} 
+                  disabled={!input.trim() || isLoading} 
+                  className="w-14 h-14 bg-primary rounded-3xl flex items-center justify-center text-white shadow-lg hover:scale-105 active:scale-95 disabled:opacity-30 transition-all"
+                >
+                  <Send size={24} />
                 </button>
               </div>
-
-              {/* App Menu Launcher (Left side) */}
-              <button 
-                onClick={() => setIsAppLauncherOpen(true)}
-                className="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
-              >
-                <LayoutGrid size={18} />
-              </button>
-           </div>
+            </div>
+          )}
         </div>
-
-        <AppGridLauncher isOpen={isAppLauncherOpen} onClose={() => setIsAppLauncherOpen(false)} />
-
       </div>
 
       <SettingsModal 
@@ -357,8 +254,8 @@ export default function ChatWindow({ isOpen, initialText, onClearInitialText, ap
         onClose={() => setIsSettingsOpen(false)}
         settings={appSettings}
         onSave={onUpdateSettings}
-        onClearHistory={() => setMessages([{ id: 'welcome', text: 'تاریخچه پاک شد. چطور می‌تونم کمکت کنم؟ 👋', sender: Sender.Bot, timestamp: Date.now() }])}
+        onClearHistory={() => setMessages([{ id: 'm1', text: 'حافظه مانا پاکسازی شد.', sender: Sender.Bot, timestamp: Date.now() }])}
       />
-    </>
+    </div>
   );
 }

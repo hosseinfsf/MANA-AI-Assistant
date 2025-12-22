@@ -1,6 +1,7 @@
+
 import React from 'react';
-import { X, Moon, Sun, Type, Image as ImageIcon, Quote, Trash2, Music } from 'lucide-react';
-import { AppSettings, Theme, QuoteSource, MusicProvider } from '../types';
+import { X, Moon, Sun, Bell, Volume2, Newspaper, Trash2, Palette, ShieldCheck, Check } from 'lucide-react';
+import { AppSettings, NewsCategory, ThemeType } from '../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -10,191 +11,123 @@ interface SettingsModalProps {
   onClearHistory: () => void;
 }
 
-const BACKGROUNDS = [
-  { id: 'snow', url: 'https://images.unsplash.com/photo-1477601263568-180e2c6d046e?q=80&w=300&auto=format&fit=crop', label: 'جنگل برفی' },
-  { id: 'dandelion', url: 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?q=80&w=300&auto=format&fit=crop', label: 'قاصدک' },
-  { id: 'lightning', url: 'https://images.unsplash.com/photo-1492552181161-62217fc3076d?q=80&w=300&auto=format&fit=crop', label: 'رعد و برق' },
-  { id: 'abstract', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=300&auto=format&fit=crop', label: 'انتزاعی' },
-  { id: 'sunset', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=300&auto=format&fit=crop', label: 'غروب نخل' },
-  { id: 'blueflower', url: 'https://images.unsplash.com/photo-1468327768560-75b778cbb551?q=80&w=300&auto=format&fit=crop', label: 'گل‌های آبی' },
-];
-
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onClearHistory }) => {
-  const [localSettings, setLocalSettings] = React.useState<AppSettings>(settings);
+  const [ls, setLs] = React.useState<AppSettings>(settings);
 
-  React.useEffect(() => {
-    setLocalSettings(settings);
-  }, [settings, isOpen]);
+  React.useEffect(() => { setLs(settings); }, [settings, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSave = () => {
-    onSave(localSettings);
-    onClose();
-  };
+  const cats: NewsCategory[] = ['سیاسی', 'اجتماعی', 'ورزشی', 'تکنولوژی', 'اقتصادی', 'هنری'];
+  
+  const themes: {id: ThemeType, label: string, color: string}[] = [
+    { id: 'macos', label: 'Classic macOS', color: 'bg-blue-500' },
+    { id: 'purple', label: 'Amethyst Purple', color: 'bg-fuchsia-500' },
+    { id: 'ocean', label: 'Ocean Deep', color: 'bg-sky-600' },
+    { id: 'nature', label: 'Spring Nature', color: 'bg-emerald-500' }
+  ];
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white/95 dark:bg-gray-900/95 w-[420px] max-h-[85vh] overflow-y-auto rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700 backdrop-blur-xl">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-3xl animate-in fade-in duration-500 p-8">
+      <div className="bg-white/95 dark:bg-[#1C1C1E]/95 w-full max-w-[680px] max-h-[90vh] overflow-y-auto rounded-[4rem] shadow-[0_100px_200px_rgba(0,0,0,1)] border border-white/10 scrollbar-hide">
         
-        {/* Header */}
-        <div className="p-5 flex justify-between items-center border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-inherit z-10">
-          <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2 text-lg">
-            تنظیمات پیشرفته
-          </h3>
-          <button onClick={onClose} className="bg-gray-100 dark:bg-gray-800 rounded-full p-2 hover:bg-gray-200 transition-colors">
-            <X size={18} className="text-gray-600 dark:text-gray-300" />
-          </button>
+        <div className="p-12 flex justify-between items-center border-b border-white/5 sticky top-0 bg-inherit z-10 backdrop-blur-3xl">
+          <div>
+            <h3 className="font-black text-gray-900 dark:text-white text-4xl tracking-tighter">System Preferences</h3>
+            <p className="text-[10px] font-black text-primary uppercase tracking-[0.4em] mt-1">مرکز شخصی‌سازی مانا</p>
+          </div>
+          <button onClick={onClose} className="p-5 bg-gray-100 dark:bg-white/5 rounded-full hover:scale-110 active:scale-90 transition-all shadow-inner border border-white/10"><X size={30} className="text-gray-500 dark:text-gray-400" /></button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-8">
+        <div className="p-12 space-y-16">
           
-          {/* Theme & Font Size */}
-          <div className="grid grid-cols-1 gap-6">
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                <Sun size={14} /> ظاهر
-              </label>
-              <div className="grid grid-cols-2 gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-                {['light', 'dark'].map((t) => (
+          {/* Visual Themes Selection */}
+          <div className="space-y-6">
+             <label className="text-[12px] font-black text-gray-400 uppercase tracking-[0.6em] px-2 flex items-center gap-2">
+                <Palette size={18} /> Visual Styles
+             </label>
+             <div className="grid grid-cols-2 gap-4">
+                {themes.map((t) => (
                   <button
-                    key={t}
-                    onClick={() => setLocalSettings({ ...localSettings, theme: t as Theme })}
-                    className={`py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                      localSettings.theme === t 
-                        ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' 
-                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                    }`}
+                    key={t.id}
+                    onClick={() => setLs({...ls, activeTheme: t.id})}
+                    className={`flex items-center gap-4 p-5 rounded-[2.5rem] border transition-all ${ls.activeTheme === t.id ? 'bg-primary/10 border-primary ring-2 ring-primary/20' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}
                   >
-                    {t === 'light' ? 'روشن' : 'تاریک'}
+                    <div className={`w-10 h-10 rounded-2xl ${t.color} flex items-center justify-center text-white shadow-lg`}>
+                      {ls.activeTheme === t.id && <Check size={20} />}
+                    </div>
+                    <div className="text-right">
+                       <p className={`text-lg font-black ${ls.activeTheme === t.id ? 'text-primary' : 'text-white/60'}`}>{t.label}</p>
+                    </div>
                   </button>
                 ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                <Type size={14} /> اندازه متن
-              </label>
-              <div className="flex items-center gap-4 bg-gray-100 dark:bg-gray-800 p-3 rounded-xl">
-                 <span className="text-xs text-gray-500">A</span>
-                 <input 
-                   type="range" 
-                   min="0" 
-                   max="2" 
-                   step="1"
-                   value={localSettings.fontSize === 'small' ? 0 : localSettings.fontSize === 'medium' ? 1 : 2}
-                   onChange={(e) => {
-                     const val = parseInt(e.target.value);
-                     setLocalSettings({ ...localSettings, fontSize: val === 0 ? 'small' : val === 1 ? 'medium' : 'large' });
-                   }}
-                   className="flex-1 accent-primary h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer"
-                 />
-                 <span className="text-lg text-gray-800 dark:text-white">A</span>
-              </div>
-            </div>
+             </div>
           </div>
 
-          {/* Music Provider */}
-          <div className="space-y-3">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <Music size={14} /> پخش‌کننده موسیقی
-            </label>
-            <div className="grid grid-cols-2 gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-              {([
-                { id: 'local', label: 'پخش داخلی' },
-                { id: 'spotify', label: 'اسپاتیفای 🟢' }
-              ] as const).map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setLocalSettings({ ...localSettings, musicProvider: m.id as MusicProvider })}
-                  className={`py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                    localSettings.musicProvider === m.id
-                      ? 'bg-white dark:bg-gray-700 text-green-600 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                  }`}
+          {/* Notifications */}
+          <div className="space-y-6">
+             <label className="text-[12px] font-black text-gray-400 uppercase tracking-[0.6em] px-2 flex items-center gap-2">
+                <Bell size={18} /> Notifications
+             </label>
+             <div className="bg-gray-100 dark:bg-white/5 p-8 rounded-[3rem] flex items-center justify-between border border-white/5 hover:bg-white/10 transition-all">
+                <div className="flex flex-col gap-1">
+                   <span className="text-2xl font-black text-gray-800 dark:text-white">نمایش هوشمند</span>
+                   <span className="text-sm opacity-30 font-bold">نمایش متمرکز اعلان‌های شبکه‌های اجتماعی</span>
+                </div>
+                <button 
+                   onClick={() => setLs({...ls, showSingleNotification: !ls.showSingleNotification})}
+                   className={`w-20 h-10 rounded-full relative transition-all duration-500 ${ls.showSingleNotification ? 'bg-[#34C759] shadow-[0_0_20px_rgba(52,199,89,0.3)]' : 'bg-gray-300 dark:bg-gray-700'}`}
                 >
-                  {m.label}
+                   <div className={`absolute top-1 w-8 h-8 bg-white rounded-full transition-all shadow-md ${ls.showSingleNotification ? 'right-11' : 'right-1'}`}></div>
                 </button>
-              ))}
-            </div>
+             </div>
           </div>
 
-          {/* Quote Source */}
-          <div className="space-y-3">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <Quote size={14} /> منبع جملات
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'motivational', label: 'انگیزشی ✨' },
-                { id: 'hafez', label: 'حافظ 📖' },
-                { id: 'programming', label: 'تکنولوژی 💻' },
-                { id: 'great_people', label: 'سخن بزرگان 🗿' }
-              ].map((q) => (
-                <button
-                  key={q.id}
-                  onClick={() => setLocalSettings({ ...localSettings, quoteSource: q.id as QuoteSource })}
-                  className={`py-2 text-xs font-medium rounded-xl border transition-all ${
-                    localSettings.quoteSource === q.id
-                      ? 'bg-primary/10 text-primary border-primary/50' 
-                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  {q.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Backgrounds */}
-          <div className="space-y-3">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <ImageIcon size={14} /> پس‌زمینه
-            </label>
+          {/* News Feed Category */}
+          <div className="space-y-6">
+            <label className="text-[12px] font-black text-gray-400 uppercase tracking-[0.6em] px-2 flex items-center gap-2">
+                <Newspaper size={18} /> News Engine
+             </label>
             <div className="grid grid-cols-3 gap-3">
-              {BACKGROUNDS.map((bg) => (
+              {cats.map((cat) => (
                 <button
-                  key={bg.id}
-                  onClick={() => setLocalSettings({ ...localSettings, backgroundImage: bg.url.replace('&w=300', '&w=800') })}
-                  className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${
-                    localSettings.backgroundImage.includes(bg.id)
-                      ? 'border-primary scale-105 shadow-md' 
-                      : 'border-transparent hover:scale-105 opacity-70 hover:opacity-100'
+                  key={cat}
+                  onClick={() => setLs({ ...ls, newsCategory: cat })}
+                  className={`py-4 rounded-[2.2rem] text-xs font-black transition-all border ${
+                    ls.newsCategory === cat 
+                      ? 'bg-primary border-primary text-white shadow-2xl scale-105' 
+                      : 'bg-white/5 border-white/10 text-gray-500 dark:text-gray-400 hover:bg-white/10'
                   }`}
                 >
-                  <img src={bg.url} alt={bg.label} className="w-full h-full object-cover" />
+                  {cat}
                 </button>
               ))}
             </div>
           </div>
-          
-          <hr className="border-gray-200 dark:border-gray-700" />
 
-          {/* Actions */}
-          <div className="space-y-4">
-             <button
-              onClick={() => {
-                if(window.confirm('آیا مطمئن هستید که می‌خواهید تاریخچه چت را پاک کنید؟')) {
-                  onClearHistory();
-                  onClose();
-                }
-              }}
-              className="w-full py-3 flex items-center justify-center gap-2 text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-2xl transition-colors text-sm font-medium"
+          <div className="bg-primary/10 p-8 rounded-[3.5rem] flex items-center justify-between border border-primary/20 shadow-xl">
+            <div className="flex items-center gap-6">
+               <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-lg"><Volume2 size={32} /></div>
+               <div className="flex flex-col">
+                  <span className="text-2xl font-black text-gray-800 dark:text-white">Siri Voice Engine</span>
+                  <span className="text-[10px] text-primary/60 uppercase tracking-widest font-black">Neural Text-to-Speech active</span>
+               </div>
+            </div>
+            <button 
+              onClick={() => setLs({...ls, autoSpeech: !ls.autoSpeech})}
+              className={`w-20 h-10 rounded-full relative transition-all duration-500 ${ls.autoSpeech ? 'bg-primary shadow-2xl' : 'bg-gray-300 dark:bg-gray-700'}`}
             >
-              <Trash2 size={16} />
-              پاک کردن تاریخچه چت
-            </button>
-
-            <button
-              onClick={handleSave}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-2xl shadow-xl shadow-blue-500/30 font-bold transition-transform active:scale-95"
-            >
-              ذخیره تغییرات
+               <div className={`absolute top-1 w-8 h-8 bg-white rounded-full transition-all shadow-md ${ls.autoSpeech ? 'right-11' : 'right-1'}`}></div>
             </button>
           </div>
 
+          {/* Action Buttons */}
+          <div className="pt-12 flex flex-col gap-6">
+            <button onClick={() => { if(confirm('کل حافظه مانا پاکسازی شود؟')) onClearHistory(); }} className="w-full py-8 text-red-500 font-bold bg-red-50 dark:bg-red-500/5 rounded-[3rem] hover:bg-red-500/10 transition-all text-xl flex items-center justify-center gap-4 border border-red-500/10">
+               <Trash2 size={26} /> پاکسازی حافظه دستیار
+            </button>
+            <button onClick={() => { onSave(ls); onClose(); }} className="w-full py-10 bg-primary text-white font-black rounded-[3rem] shadow-[0_30px_60px_rgba(var(--theme-primary-rgb),0.4)] transition-all hover:scale-[1.02] active:scale-95 text-3xl tracking-tighter border border-white/20">Apply & Sync Environment</button>
+          </div>
         </div>
       </div>
     </div>
