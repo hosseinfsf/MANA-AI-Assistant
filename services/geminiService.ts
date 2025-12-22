@@ -1,42 +1,37 @@
 
 import { GoogleGenAI, GenerateContentResponse, Modality } from "@google/genai";
-import { AssistantMode, AIToolType, ToneType } from '../types';
-
-const getAIToolInstruction = (tool?: AIToolType, tone?: ToneType) => {
-  switch (tool) {
-    case 'summarize': return "متن را بسیار دقیق و در قالب چند نکته کلیدی خلاصه کن. لحن را حفظ کن.";
-    case 'translate': return "متن را شناسایی کن و به زبان مقصد (فارسی/انگلیسی) ترجمه کن. فقط ترجمه نهایی را برگردان.";
-    case 'shorten': return "بدون حذف پیام اصلی، متن را تا حد امکان کوتاه و موجز کن.";
-    case 'lengthen': return "با استفاده از کلمات غنی‌تر و جزئیات بیشتر، متن را بسط بده.";
-    case 'change_tone': 
-      const tones = { formal: 'رسمی و اداری', slang: 'عامیانه', friendly: 'صمیمی', humorous: 'طنزآمیز' };
-      return `بدون تغییر معنا، لحن متن را به ${tones[tone || 'formal']} تغییر بده.`;
-    default: return "به عنوان یک دستیار هوشمند با استایل اپل پاسخ بده.";
-  }
-};
+import { AssistantMode, AIToolType, ToneType, AIModel } from '../types';
 
 export const sendMessageStream = async function* (
   text: string,
   mode: AssistantMode,
   history: { role: string; parts: { text: string }[] }[],
-  options: { tool?: AIToolType; tone?: ToneType; category?: string } = {}
+  options: { 
+    tool?: AIToolType; 
+    tone?: ToneType; 
+    category?: string;
+    apiKey?: string;
+    model?: AIModel;
+  } = {}
 ) {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const modelName = mode === AssistantMode.News ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+  // Use custom key if provided and valid, otherwise fallback to env (demo mode)
+  const finalApiKey = (options.apiKey && options.apiKey.length > 10) ? options.apiKey : process.env.API_KEY;
+  const ai = new GoogleGenAI({ apiKey: finalApiKey });
+  
+  // Use selected model or default to flash
+  const modelName = options.model || (mode === AssistantMode.News ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview');
   
   let systemInstruction = "";
-  if (mode === AssistantMode.AI) {
-    systemInstruction = getAIToolInstruction(options.tool, options.tone);
-  } else if (mode === AssistantMode.News) {
-    systemInstruction = `شما یک واحد خبری پیشرفته هستید. بر اساس دسته "${options.category}"، آخرین اخبار داغ امروز را از وب جستجو کرده و به صورت یک لیست خطی (هر خبر در یک خط مجزا)، کوتاه و بسیار جذاب با ذکر منبع گزارش دهید. از ایموجی‌های مرتبط استفاده کنید.`;
+  if (mode === AssistantMode.News) {
+    systemInstruction = `شما یک واحد خبری پیشرفته هستید. بر اساس دسته "${options.category || 'تکنولوژی'}"، آخرین اخبار داغ امروز را از وب جستجو کرده و به صورت یک لیست خطی (هر خبر در یک خط مجزا)، کوتاه و بسیار جذاب با ذکر منبع گزارش دهید. از ایموجی‌های مرتبط استفاده کنید. در انتهای پاسخ، ۳ پیشنهاد کوتاه برای ادامه جستجو را دقیقاً با فرمت [[SUGGESTIONS: ["گزینه ۱", "گزینه ۲", "گزینه ۳"]]] ارائه دهید.`;
   } else {
-    systemInstruction = "شما 'مانا' هستید. یک دستیار هوشمند با طراحی مک‌او‌اس و استایل اپل. پاسخ‌های شما باید بسیار شیک، دقیق، کوتاه و به زبان فارسی باشد.";
+    systemInstruction = "شما 'مانا' هستید. یک دستیار هوشمند، فوق‌العاده مودب، دقیق و با شخصیت کاریزماتیک. پاسخ‌های شما باید کوتاه، مفید و با لحنی حرفه‌ای اما صمیمی باشد. در انتهای پاسخ، ۳ پیشنهاد کوتاه (حداکثر ۴ کلمه) برای ادامه گفتگو را دقیقاً با فرمت [[SUGGESTIONS: [\"گزینه ۱\", \"گزینه ۲\", \"گزینه ۳\"]]] ارائه دهید.";
   }
 
   try {
     const config: any = {
       systemInstruction,
-      temperature: 0.6,
+      temperature: 0.7,
     };
 
     if (mode === AssistantMode.News) {
@@ -54,12 +49,13 @@ export const sendMessageStream = async function* (
     }
   } catch (error) {
     console.error("Gemini Error:", error);
-    yield "خطایی در سیستم مانا رخ داد. لطفا دوباره تلاش کنید.";
+    yield "متاسفانه در برقراری ارتباط با سرور خطایی رخ داد. لطفا اتصال اینترنت یا کلید API خود را بررسی کنید.";
   }
 };
 
-export const generateSpeech = async (text: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+export const generateSpeech = async (text: string, apiKey?: string) => {
+  const finalApiKey = (apiKey && apiKey.length > 10) ? apiKey : process.env.API_KEY;
+  const ai = new GoogleGenAI({ apiKey: finalApiKey });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",

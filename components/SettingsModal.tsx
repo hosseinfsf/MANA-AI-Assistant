@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { X, Moon, Sun, Bell, Volume2, Newspaper, Trash2, Palette, ShieldCheck, Check } from 'lucide-react';
-import { AppSettings, NewsCategory, ThemeType } from '../types';
+import { X, Moon, Sun, Bell, Volume2, Newspaper, Trash2, Palette, ShieldCheck, Check, Key, Cpu, LayoutGrid } from 'lucide-react';
+import { AppSettings, NewsCategory, ThemeType, AIModel } from '../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -18,116 +18,128 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
   if (!isOpen) return null;
 
-  const cats: NewsCategory[] = ['سیاسی', 'اجتماعی', 'ورزشی', 'تکنولوژی', 'اقتصادی', 'هنری'];
-  
   const themes: {id: ThemeType, label: string, color: string}[] = [
-    { id: 'macos', label: 'Classic macOS', color: 'bg-blue-500' },
-    { id: 'purple', label: 'Amethyst Purple', color: 'bg-fuchsia-500' },
-    { id: 'ocean', label: 'Ocean Deep', color: 'bg-sky-600' },
-    { id: 'nature', label: 'Spring Nature', color: 'bg-emerald-500' }
+    { id: 'purple', label: 'Amethyst', color: 'bg-purple-500' },
+    { id: 'midnight', label: 'Midnight', color: 'bg-rose-600' },
+    { id: 'ocean', label: 'Ocean', color: 'bg-sky-500' },
+    { id: 'nature', label: 'Nature', color: 'bg-emerald-500' },
+    { id: 'macos', label: 'Silver', color: 'bg-slate-400' }
+  ];
+
+  const models: {id: AIModel, label: string, desc: string}[] = [
+    { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', desc: 'Fastest • Efficient' },
+    { id: 'gemini-3-pro-preview', label: 'Gemini 3 Pro', desc: 'Smartest • Reasoning' }
   ];
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-3xl animate-in fade-in duration-500 p-8">
-      <div className="bg-white/95 dark:bg-[#1C1C1E]/95 w-full max-w-[680px] max-h-[90vh] overflow-y-auto rounded-[4rem] shadow-[0_100px_200px_rgba(0,0,0,1)] border border-white/10 scrollbar-hide">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-3xl animate-in fade-in duration-500 p-4 sm:p-8">
+      <div className="bg-[#101010] w-full max-w-[680px] max-h-[90vh] overflow-y-auto rounded-[2.5rem] sm:rounded-[3.5rem] shadow-[0_50px_100px_rgba(0,0,0,1)] border border-white/10 scrollbar-hide relative flex flex-col">
         
-        <div className="p-12 flex justify-between items-center border-b border-white/5 sticky top-0 bg-inherit z-10 backdrop-blur-3xl">
+        {/* Header */}
+        <div className="p-6 sm:p-10 flex justify-between items-center border-b border-white/5 sticky top-0 bg-[#101010]/95 backdrop-blur-xl z-20 shrink-0">
           <div>
-            <h3 className="font-black text-gray-900 dark:text-white text-4xl tracking-tighter">System Preferences</h3>
-            <p className="text-[10px] font-black text-primary uppercase tracking-[0.4em] mt-1">مرکز شخصی‌سازی مانا</p>
+            <h3 className="font-black text-white text-2xl sm:text-3xl tracking-tighter">تنظیمات مانا</h3>
+            <p className="text-[9px] sm:text-[10px] font-bold text-primary opacity-80 uppercase tracking-[0.3em] mt-1">Control Center</p>
           </div>
-          <button onClick={onClose} className="p-5 bg-gray-100 dark:bg-white/5 rounded-full hover:scale-110 active:scale-90 transition-all shadow-inner border border-white/10"><X size={30} className="text-gray-500 dark:text-gray-400" /></button>
+          <button onClick={onClose} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/5 rounded-full hover:bg-white/10 transition-all border border-white/5 text-white/50 hover:text-white">
+            <X size={20} className="sm:w-6 sm:h-6" />
+          </button>
         </div>
 
-        <div className="p-12 space-y-16">
+        <div className="p-6 sm:p-10 space-y-8 sm:space-y-12 pb-20">
           
-          {/* Visual Themes Selection */}
-          <div className="space-y-6">
-             <label className="text-[12px] font-black text-gray-400 uppercase tracking-[0.6em] px-2 flex items-center gap-2">
-                <Palette size={18} /> Visual Styles
-             </label>
-             <div className="grid grid-cols-2 gap-4">
+          {/* THEMES */}
+          <section className="space-y-4">
+             <div className="flex items-center gap-2 text-white/30 text-[10px] font-black uppercase tracking-[0.2em] px-2">
+                <Palette size={14} /> <span>Visual Theme</span>
+             </div>
+             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {themes.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => setLs({...ls, activeTheme: t.id})}
-                    className={`flex items-center gap-4 p-5 rounded-[2.5rem] border transition-all ${ls.activeTheme === t.id ? 'bg-primary/10 border-primary ring-2 ring-primary/20' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}
+                    className={`relative p-4 rounded-[1.5rem] sm:rounded-[2rem] border transition-all duration-300 overflow-hidden group ${ls.activeTheme === t.id ? 'bg-primary/20 border-primary' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
                   >
-                    <div className={`w-10 h-10 rounded-2xl ${t.color} flex items-center justify-center text-white shadow-lg`}>
-                      {ls.activeTheme === t.id && <Check size={20} />}
+                    <div className={`w-8 h-8 rounded-full ${t.color} mb-3 shadow-lg flex items-center justify-center`}>
+                      {ls.activeTheme === t.id && <Check size={14} className="text-white" />}
                     </div>
-                    <div className="text-right">
-                       <p className={`text-lg font-black ${ls.activeTheme === t.id ? 'text-primary' : 'text-white/60'}`}>{t.label}</p>
-                    </div>
+                    <p className={`text-sm font-bold text-right ${ls.activeTheme === t.id ? 'text-white' : 'text-white/50'}`}>{t.label}</p>
                   </button>
                 ))}
              </div>
-          </div>
+          </section>
 
-          {/* Notifications */}
-          <div className="space-y-6">
-             <label className="text-[12px] font-black text-gray-400 uppercase tracking-[0.6em] px-2 flex items-center gap-2">
-                <Bell size={18} /> Notifications
-             </label>
-             <div className="bg-gray-100 dark:bg-white/5 p-8 rounded-[3rem] flex items-center justify-between border border-white/5 hover:bg-white/10 transition-all">
-                <div className="flex flex-col gap-1">
-                   <span className="text-2xl font-black text-gray-800 dark:text-white">نمایش هوشمند</span>
-                   <span className="text-sm opacity-30 font-bold">نمایش متمرکز اعلان‌های شبکه‌های اجتماعی</span>
+          {/* AI MODEL & API */}
+          <section className="space-y-4">
+             <div className="flex items-center gap-2 text-white/30 text-[10px] font-black uppercase tracking-[0.2em] px-2">
+                <Cpu size={14} /> <span>Intelligence Core</span>
+             </div>
+             
+             {/* Model Selector */}
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+               {models.map(m => (
+                 <button 
+                  key={m.id} 
+                  onClick={() => setLs({...ls, model: m.id})}
+                  className={`p-4 rounded-[1.5rem] sm:rounded-[2rem] border text-right transition-all ${ls.model === m.id ? 'bg-white text-black border-white' : 'bg-black border-white/10 text-white/50 hover:border-white/30'}`}
+                 >
+                   <div className="font-bold text-sm">{m.label}</div>
+                   <div className="text-[10px] opacity-60 mt-1 font-medium tracking-wide">{m.desc}</div>
+                 </button>
+               ))}
+             </div>
+
+             {/* API Key Input */}
+             <div className="bg-white/5 border border-white/10 rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-5 focus-within:border-primary/50 transition-all">
+               <div className="flex justify-between items-center mb-2">
+                 <span className="text-xs font-bold text-white flex items-center gap-2"><Key size={14}/> کلید API اختصاصی</span>
+                 <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={ls.useCustomKey} onChange={e => setLs({...ls, useCustomKey: e.target.checked})} className="sr-only peer"/>
+                    <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                 </label>
+               </div>
+               {ls.useCustomKey && (
+                 <input 
+                   type="password" 
+                   value={ls.apiKey} 
+                   onChange={e => setLs({...ls, apiKey: e.target.value})}
+                   placeholder="sk-..." 
+                   className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 font-mono tracking-wider"
+                 />
+               )}
+               <p className="text-[10px] text-white/30 mt-2 leading-relaxed">در صورت غیرفعال بودن، از کلید پیش‌فرض نسخه دمو استفاده می‌شود.</p>
+             </div>
+          </section>
+
+          {/* VOICE */}
+          <section className="space-y-4">
+             <div className="flex items-center gap-2 text-white/30 text-[10px] font-black uppercase tracking-[0.2em] px-2">
+                <Volume2 size={14} /> <span>Voice Feedback</span>
+             </div>
+             <div className="bg-gradient-to-r from-primary/20 to-secondary/10 p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] border border-primary/20 flex items-center justify-between">
+                <div>
+                   <h4 className="text-white font-bold text-base sm:text-lg">خواندن پاسخ‌ها</h4>
+                   <p className="text-white/40 text-[10px] mt-1">تبدیل متن به گفتار (TTS)</p>
                 </div>
                 <button 
-                   onClick={() => setLs({...ls, showSingleNotification: !ls.showSingleNotification})}
-                   className={`w-20 h-10 rounded-full relative transition-all duration-500 ${ls.showSingleNotification ? 'bg-[#34C759] shadow-[0_0_20px_rgba(52,199,89,0.3)]' : 'bg-gray-300 dark:bg-gray-700'}`}
+                  onClick={() => setLs({...ls, autoSpeech: !ls.autoSpeech})}
+                  className={`w-14 h-8 rounded-full relative transition-all duration-300 ${ls.autoSpeech ? 'bg-primary' : 'bg-white/10'}`}
                 >
-                   <div className={`absolute top-1 w-8 h-8 bg-white rounded-full transition-all shadow-md ${ls.showSingleNotification ? 'right-11' : 'right-1'}`}></div>
+                   <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-md ${ls.autoSpeech ? 'right-7' : 'right-1'}`}></div>
                 </button>
              </div>
-          </div>
+          </section>
 
-          {/* News Feed Category */}
-          <div className="space-y-6">
-            <label className="text-[12px] font-black text-gray-400 uppercase tracking-[0.6em] px-2 flex items-center gap-2">
-                <Newspaper size={18} /> News Engine
-             </label>
-            <div className="grid grid-cols-3 gap-3">
-              {cats.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setLs({ ...ls, newsCategory: cat })}
-                  className={`py-4 rounded-[2.2rem] text-xs font-black transition-all border ${
-                    ls.newsCategory === cat 
-                      ? 'bg-primary border-primary text-white shadow-2xl scale-105' 
-                      : 'bg-white/5 border-white/10 text-gray-500 dark:text-gray-400 hover:bg-white/10'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-primary/10 p-8 rounded-[3.5rem] flex items-center justify-between border border-primary/20 shadow-xl">
-            <div className="flex items-center gap-6">
-               <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-lg"><Volume2 size={32} /></div>
-               <div className="flex flex-col">
-                  <span className="text-2xl font-black text-gray-800 dark:text-white">Siri Voice Engine</span>
-                  <span className="text-[10px] text-primary/60 uppercase tracking-widest font-black">Neural Text-to-Speech active</span>
-               </div>
-            </div>
-            <button 
-              onClick={() => setLs({...ls, autoSpeech: !ls.autoSpeech})}
-              className={`w-20 h-10 rounded-full relative transition-all duration-500 ${ls.autoSpeech ? 'bg-primary shadow-2xl' : 'bg-gray-300 dark:bg-gray-700'}`}
-            >
-               <div className={`absolute top-1 w-8 h-8 bg-white rounded-full transition-all shadow-md ${ls.autoSpeech ? 'right-11' : 'right-1'}`}></div>
+          {/* DANGER ZONE */}
+          <div className="pt-4 sm:pt-8">
+            <button onClick={() => { if(confirm('آیا مطمئن هستید؟')) onClearHistory(); }} className="w-full py-4 text-red-400 text-sm font-bold bg-red-500/5 rounded-2xl hover:bg-red-500/10 transition-all flex items-center justify-center gap-2 border border-red-500/10 mb-4">
+               <Trash2 size={16} /> پاکسازی تاریخچه گفتگو
+            </button>
+            <button onClick={() => { onSave(ls); onClose(); }} className="w-full py-4 sm:py-5 bg-white text-black font-black rounded-[1.5rem] sm:rounded-[2rem] shadow-lg hover:scale-[1.02] active:scale-95 transition-all text-base sm:text-lg">
+              ذخیره تغییرات
             </button>
           </div>
 
-          {/* Action Buttons */}
-          <div className="pt-12 flex flex-col gap-6">
-            <button onClick={() => { if(confirm('کل حافظه مانا پاکسازی شود؟')) onClearHistory(); }} className="w-full py-8 text-red-500 font-bold bg-red-50 dark:bg-red-500/5 rounded-[3rem] hover:bg-red-500/10 transition-all text-xl flex items-center justify-center gap-4 border border-red-500/10">
-               <Trash2 size={26} /> پاکسازی حافظه دستیار
-            </button>
-            <button onClick={() => { onSave(ls); onClose(); }} className="w-full py-10 bg-primary text-white font-black rounded-[3rem] shadow-[0_30px_60px_rgba(var(--theme-primary-rgb),0.4)] transition-all hover:scale-[1.02] active:scale-95 text-3xl tracking-tighter border border-white/20">Apply & Sync Environment</button>
-          </div>
         </div>
       </div>
     </div>

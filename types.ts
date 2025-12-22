@@ -11,6 +11,7 @@ export interface Message {
   timestamp: number;
   type?: 'text' | 'image' | 'audio';
   audioData?: string;
+  suggestions?: string[];
 }
 
 export interface SocialNotification {
@@ -23,28 +24,40 @@ export interface SocialNotification {
 }
 
 export enum AssistantMode {
+  Home = 'home',
   Chat = 'chat',
-  AI = 'ai',
-  ToDo = 'todo',
+  Widgets = 'widgets',
   News = 'news'
 }
 
-export type ThemeType = 'macos' | 'purple' | 'ocean' | 'nature';
-export type TodoCategory = 'daily' | 'shopping' | 'notes';
+export type ThemeType = 'purple' | 'midnight' | 'ocean' | 'nature' | 'macos';
 export type NewsCategory = 'سیاسی' | 'اجتماعی' | 'ورزشی' | 'تکنولوژی' | 'اقتصادی' | 'هنری';
 export type AIToolType = 'translate' | 'summarize' | 'shorten' | 'lengthen' | 'change_tone';
 export type ToneType = 'formal' | 'slang' | 'friendly' | 'humorous';
+export type AIModel = 'gemini-3-flash-preview' | 'gemini-3-pro-preview';
+
+export interface WidgetConfig {
+  id: string;
+  enabled: boolean;
+  title: string;
+  type: 'weather' | 'calendar' | 'stocks' | 'notes' | 'battery';
+}
 
 export interface AppSettings {
-  apiKey: string;
-  model: string;
-  theme: 'light' | 'dark';
+  // Pro Settings
+  apiKey: string; // Custom User API Key
+  useCustomKey: boolean;
+  model: AIModel;
+  
+  // Appearance
   activeTheme: ThemeType;
   backgroundImage: string;
   fontSize: 'small' | 'medium' | 'large';
+  
+  // Features
   autoSpeech: boolean;
-  showSingleNotification: boolean;
   newsCategory: NewsCategory;
+  widgets: WidgetConfig[];
 }
 
 export interface TodoItem {
@@ -52,5 +65,5 @@ export interface TodoItem {
   text: string;
   completed: boolean;
   timestamp: number;
-  category: TodoCategory;
+  category: 'daily' | 'shopping' | 'notes';
 }
