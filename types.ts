@@ -67,3 +67,14 @@ export interface TodoItem {
   timestamp: number;
   category: 'daily' | 'shopping' | 'notes';
 }
+
+export interface Verse {
+  mesra1: string;
+  mesra2: string;
+}
+
+export interface Ghazal {
+  id: number;
+  title: string;
+  verses: Verse[];
+}
