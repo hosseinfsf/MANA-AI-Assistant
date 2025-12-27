@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { loadGhazals, getRandomGhazal } from '../services/hafezService';
 import type { Ghazal } from '../types';
+import { sendMessageStream, checkAndConsumeQuota } from '../../services/aiManager';
+import { AssistantMode } from '../../types';
 
 const HafezFortune: React.FC = () => {
   const [currentGhazal, setCurrentGhazal] = useState<Ghazal | null>(null);
@@ -36,6 +38,46 @@ const HafezFortune: React.FC = () => {
       setError('خطا در دریافت فال جدید');
     }
     setLoading(false);
+  };
+
+  const [interpretation, setInterpretation] = useState<string>('');
+  const [isInterpreting, setIsInterpreting] = useState<boolean>(false);
+
+  const interpret = async () => {
+    if (!currentGhazal) return;
+    setIsInterpreting(true);
+    setInterpretation('');
+
+    // load profile from localStorage if available
+    let profile = null;
+    try { profile = JSON.parse(localStorage.getItem('mana_profile_v1') || 'null'); } catch { profile = null; }
+
+    const versesText = currentGhazal.verses.map(v => `${v.mesra1} / ${v.mesra2}`).join('\n');
+    const userSummary = profile ? `نام: ${profile.name || 'ناشناخته'}، سن: ${profile.ageRange || 'نامشخص'}، فعالیت روزانه: ${profile.dailyActivity || '-'}، ماه تولد: ${profile.birthMonth || '-'}، شهر: ${profile.city || '-'}` : 'پروفایل کاربر موجود نیست.';
+
+    const prompt = `این یک فال حافظ است:
+${versesText}
+
+شرح: لطفاً یک تفسیر کوتاه، مثبت و عملی برای این فال بنویس که با شخصیت "مانا" (صمیمی، کمی شوخ، حرفه‌ای) سازگار باشد. همچنین یک جمله انگیزشی کوتاه و ۲ پیشنهاد عملی برای امروز اضافه کن. اطلاعات کاربر: ${userSummary}`;
+
+    try {
+      const quota = checkAndConsumeQuota();
+      if (!quota.allowed) {
+        setInterpretation('محدودیت روزانه نسخه رایگان تمام شد. برای ادامه نسخه پرو را خریداری کنید.');
+        setIsInterpreting(false);
+        return;
+      }
+      const stream = sendMessageStream(prompt, AssistantMode.Chat, [], { model: 'gemini-3-flash-preview' });
+      let full = '';
+      for await (const chunk of stream) {
+        full += chunk;
+        setInterpretation(full);
+      }
+    } catch (e) {
+      setInterpretation('خطا در دریافت تفسیر. لطفا بعدا امتحان کنید.');
+    } finally {
+      setIsInterpreting(false);
+    }
   };
 
   if (error) {
@@ -75,6 +117,22 @@ const HafezFortune: React.FC = () => {
           >
             {loading ? 'در حال بارگذاری...' : 'فال جدید بگیر ✨'}
           </button>
+          <div className="mt-4">
+            <button onClick={interpret} disabled={isInterpreting} className="px-6 py-3 ml-2 bg-amber-400 text-black rounded-lg hover:brightness-95 transition-colors duration-200 disabled:opacity-50">
+              {isInterpreting ? 'در حال تفسیر...' : 'تفسیر با مانا'}
+            </button>
+          </div>
+
+          {interpretation && (
+            <div className="mt-6 text-right bg-white/5 p-4 rounded-lg text-gray-100" dir="rtl">
+              <h3 className="font-bold text-white mb-2">تفسیر مانا</h3>
+              <div className="whitespace-pre-wrap text-sm leading-relaxed">{interpretation}</div>
+              <div className="mt-3 flex gap-2 justify-end">
+                <button onClick={() => { navigator.clipboard.writeText(interpretation); alert('کپی شد'); }} className="px-3 py-2 bg-white/5 rounded-lg">کپی</button>
+                <button onClick={() => setInterpretation('')} className="px-3 py-2 bg-white/5 rounded-lg">بستن</button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center py-8">غزلی یافت نشد</div>

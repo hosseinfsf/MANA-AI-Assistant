@@ -49,6 +49,14 @@ export interface AppSettings {
   useCustomKey: boolean;
   model: AIModel;
   
+  // Account / Pro
+  isPro: boolean;
+  assistantEnabled: boolean;
+  // AI provider selection
+  aiProvider?: 'gemini' | 'openai' | 'mock';
+  // free daily limit for non-pro users
+  freeDailyLimit?: number;
+
   // Appearance
   activeTheme: ThemeType;
   backgroundImage: string;
@@ -66,6 +74,15 @@ export interface TodoItem {
   completed: boolean;
   timestamp: number;
   category: 'daily' | 'shopping' | 'notes';
+}
+
+export interface UserProfile {
+  name: string;
+  nickname?: string;
+  ageRange: 'under18' | '18-25' | '26-35' | '36-50' | '50+';
+  dailyActivity: 'درس' | 'کار' | 'خونه' | 'فریلنس' | 'بازنشسته' | 'سایر';
+  birthMonth: string;
+  city: string;
 }
 
 export interface Verse {

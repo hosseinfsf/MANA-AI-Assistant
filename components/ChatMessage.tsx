@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Message, Sender } from '../types';
 import { Copy, Check, Bot, User, Play, Pause, Volume2, Sparkles, MessageCircle } from 'lucide-react';
-import { playAudioBase64 } from '../services/geminiService';
+import { playAudioBase64 } from '../services/aiManager';
 
 interface ChatMessageProps {
   message: Message;

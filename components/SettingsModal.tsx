@@ -9,6 +9,7 @@ interface SettingsModalProps {
   settings: AppSettings;
   onSave: (newSettings: AppSettings) => void;
   onClearHistory: () => void;
+  onRequestPurchase?: () => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onClearHistory }) => {
@@ -89,6 +90,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                ))}
              </div>
 
+             {/* Assistant Enable Toggle */}
+             <div className="bg-white/5 border border-white/10 rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-5 focus-within:border-primary/50 transition-all flex items-center justify-between">
+               <div>
+                 <div className="text-sm font-bold text-white">فعال بودن دستیار</div>
+                 <div className="text-[10px] text-white/40">اگر غیرفعال شود، دکمه شناور فقط پنل را باز می‌کند.</div>
+               </div>
+               <label className="relative inline-flex items-center cursor-pointer">
+                 <input type="checkbox" checked={ls.assistantEnabled} onChange={e => setLs({...ls, assistantEnabled: e.target.checked})} className="sr-only peer" />
+                 <div className={`w-11 h-6 rounded-full transition-all ${ls.assistantEnabled ? 'bg-primary' : 'bg-white/10'}`}>
+                   <div className={`h-5 w-5 bg-white rounded-full shadow-md transform transition-transform ${ls.assistantEnabled ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                 </div>
+               </label>
+             </div>
+
              {/* API Key Input */}
              <div className="bg-white/5 border border-white/10 rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-5 focus-within:border-primary/50 transition-all">
                <div className="flex justify-between items-center mb-2">
@@ -109,6 +124,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                )}
                <p className="text-[10px] text-white/30 mt-2 leading-relaxed">در صورت غیرفعال بودن، از کلید پیش‌فرض نسخه دمو استفاده می‌شود.</p>
              </div>
+
+            {/* Provider Selection & Rate Limit */}
+            <div className="bg-white/5 border border-white/10 rounded-[1.5rem] p-4 sm:p-5">
+              <div className="text-xs font-bold text-white mb-2">انتخاب سرویس هوش مصنوعی</div>
+              <div className="flex gap-2">
+                <label className={`px-3 py-2 rounded ${ls.aiProvider === 'gemini' ? 'bg-primary' : 'bg-white/5'}`}>
+                  <input type="radio" name="provider" checked={ls.aiProvider === 'gemini'} onChange={() => setLs({...ls, aiProvider: 'gemini'})} className="sr-only" /> Gemini
+                </label>
+                <label className={`px-3 py-2 rounded ${ls.aiProvider === 'openai' ? 'bg-primary' : 'bg-white/5'}`}>
+                  <input type="radio" name="provider" checked={ls.aiProvider === 'openai'} onChange={() => setLs({...ls, aiProvider: 'openai'})} className="sr-only" /> OpenAI
+                </label>
+                <label className={`px-3 py-2 rounded ${ls.aiProvider === 'mock' ? 'bg-primary' : 'bg-white/5'}`}>
+                  <input type="radio" name="provider" checked={ls.aiProvider === 'mock'} onChange={() => setLs({...ls, aiProvider: 'mock'})} className="sr-only" /> Mock
+                </label>
+              </div>
+              <div className="mt-3 text-[10px] text-white/40">محدودیت نسخه رایگان (تعداد پیام در روز):</div>
+              <input type="number" value={ls.freeDailyLimit || 20} onChange={e => setLs({...ls, freeDailyLimit: Number(e.target.value)})} className="mt-2 w-28 p-2 rounded bg-black/50" />
+            </div>
           </section>
 
           {/* VOICE */}
@@ -129,6 +162,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 </button>
              </div>
           </section>
+
+           {/* PRO / PURCHASE */}
+           <section className="space-y-4">
+             <div className="flex items-center gap-2 text-white/30 text-[10px] font-black uppercase tracking-[0.2em] px-2">
+               <ShieldCheck size={14} /> <span>پلان پرو</span>
+             </div>
+             <div className="bg-gradient-to-r from-yellow-600/20 to-yellow-400/10 p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] border border-yellow-400/10 flex items-center justify-between">
+               <div>
+                 <h4 className="text-white font-bold text-base sm:text-lg">نسخه حرفه‌ای</h4>
+                 <p className="text-white/40 text-[10px] mt-1">دسترسی به مدل‌های پیشرفته، اولویت در صف و پشتیبانی</p>
+               </div>
+               {!ls.isPro ? (
+                <button onClick={() => { if (onRequestPurchase) { onRequestPurchase(); } else { if (confirm('خرید نسخه پرو؟ (شبیه‌سازی)')) setLs({...ls, isPro: true}); } }} className="px-4 py-2 rounded-xl bg-yellow-400 text-black font-bold">خرید</button>
+               ) : (
+                <div className="text-sm font-bold text-white/90">شما نسخه پرو را دارید</div>
+               )}
+             </div>
+           </section>
 
           {/* DANGER ZONE */}
           <div className="pt-4 sm:pt-8">

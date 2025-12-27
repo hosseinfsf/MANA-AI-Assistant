@@ -8,8 +8,7 @@ import {
 } from 'lucide-react';
 import { Message, Sender, AssistantMode, AppSettings, TodoItem, WidgetConfig } from '../types';
 import ChatMessage from './ChatMessage';
-import { sendMessageStream } from '../services/geminiService';
-import SettingsModal from './SettingsModal';
+import { sendMessageStream, checkAndConsumeQuota } from '../services/aiManager';
 
 const getPersianDate = () => new Intl.DateTimeFormat('fa-IR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 
@@ -121,12 +120,12 @@ const WidgetCenter = ({ widgets, toggleWidget }: { widgets: WidgetConfig[], togg
 
 // --- MAIN CONTROLLER ---
 
-export default function ChatWindow({ isOpen, appSettings, onUpdateSettings }: any) {
+export default function ChatWindow({ isOpen, appSettings, onUpdateSettings, onOpenSettings, initialInputText }: any) {
   const [activeMode, setActiveMode] = useState<AssistantMode>(AssistantMode.Home);
   const [messages, setMessages] = useState<Message[]>([{ id: 'm1', text: 'سلام! من آماده‌ام.', sender: Sender.Bot, timestamp: Date.now() }]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
   const [time, setTime] = useState(new Date());
   
   // Widget State
@@ -148,9 +147,29 @@ export default function ChatWindow({ isOpen, appSettings, onUpdateSettings }: an
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages, isLoading, activeMode]);
 
+  // Listen for clear-history events from parent (Settings in App)
+  useEffect(() => {
+    const handler = () => setMessages([{ id: 'm1', text: 'حافظه پاکسازی شد.', sender: Sender.Bot, timestamp: Date.now() }]);
+    window.addEventListener('mana_clear_history', handler as EventListener);
+    return () => window.removeEventListener('mana_clear_history', handler as EventListener);
+  }, []);
+
+  // Accept initial input text from global events (App will set isOpen and pass text)
+  useEffect(() => {
+    if (initialInputText && initialInputText.trim()) {
+      // open and send when available
+      (async () => { await handleSend(initialInputText); })();
+    }
+  }, [initialInputText]);
+
   const handleSend = async (textOverride?: string) => {
     const textToSend = textOverride || input;
     if (!textToSend.trim() || isLoading) return;
+    const quota = checkAndConsumeQuota();
+    if (!quota.allowed) {
+      setMessages(prev => [...prev, { id: Date.now().toString(), text: 'محدودیت روزانه نسخه رایگان تمام شد. برای ادامه نسخه پرو را خریداری کنید.', sender: Sender.Bot, timestamp: Date.now() }]);
+      return;
+    }
     
     setMessages(prev => [...prev, { id: Date.now().toString(), text: textToSend, sender: Sender.User, timestamp: Date.now() }]);
     setInput('');
@@ -233,10 +252,10 @@ export default function ChatWindow({ isOpen, appSettings, onUpdateSettings }: an
            </div>
 
            {/* Right: Actions */}
-           <div className="flex items-center gap-2 sm:gap-3">
-              <button onClick={() => setIsSettingsOpen(true)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"><Settings size={18} className="sm:w-5 sm:h-5" /></button>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button onClick={() => onOpenSettings && onOpenSettings()} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"><Settings size={18} className="sm:w-5 sm:h-5" /></button>
               <button onClick={() => onUpdateSettings({ ...appSettings, isOpen: false })} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white transition-all"><Power size={18} className="sm:w-5 sm:h-5" /></button>
-           </div>
+            </div>
         </div>
 
         {/* --- MAIN NAVIGATION BAR --- */}
@@ -310,13 +329,10 @@ export default function ChatWindow({ isOpen, appSettings, onUpdateSettings }: an
 
         </div>
 
-        <SettingsModal 
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          settings={appSettings}
-          onSave={onUpdateSettings}
-          onClearHistory={() => setMessages([{ id: 'm1', text: 'حافظه پاکسازی شد.', sender: Sender.Bot, timestamp: Date.now() }])}
-        />
+      {/* Settings handled by parent App; listen for clear events */}
+      
+      {/* Clear history event listener (from Settings in App) */}
+      
       </div>
     </div>
   );
