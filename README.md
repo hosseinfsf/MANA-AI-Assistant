@@ -21,6 +21,10 @@
 - اولویت‌بندی (کم/متوسط/زیاد) و وضعیت انجام
 - پیشنهاد هوشمند برای تقسیم کارهای بزرگ و یادآوری
 
+#### SmartTopTasks (۳ کار برتر)
+- انتخاب و رتبه‌بندی ۳ کار مهم امروز به‌صورت خودکار توسط هوش مصنوعی
+- ذخیره محلی فهرست کارها در `localStorage` با کلید `mana_tasks` (قابل استفاده توسط ویجت خانگی و `TaskManager`)
+
 ### هوش کلیپ‌بورد (ویژگی اصلی)
 - مانیتور کردن کپی شدن متن
 - تشخیص نوع متن (پیام، کامنت، ایمیل، کپشن، متن رسمی)
@@ -133,6 +137,10 @@ MANA-AI-Assistant/
 - Adding daily tasks with scheduling and reminders
 - Prioritization (low/medium/high) and completion status
 - Intelligent suggestions for breaking down large tasks and reminders
+
+#### SmartTopTasks (Top 3 Tasks)
+- Automatically select and rank the top 3 most important tasks for today using AI
+- Local task list is stored in `localStorage` under the key `mana_tasks` (used by the Home widget and `TaskManager`)
 
 ### Clipboard Intelligence (Signature Feature)
 - Monitoring text copying
